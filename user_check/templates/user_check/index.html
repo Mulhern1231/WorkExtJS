@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+
+        <link rel = "stylesheet" type = "text/css" href = "https://cdnjs.cloudflare.com/ajax/libs/extjs/6.0.0/classic/theme-crisp/resources/theme-crisp-all.css" / >
+    </head>
+    <body>
+
+        <script type = "text/javascript" src = "https://cdnjs.cloudflare.com/ajax/libs/extjs/6.0.0/ext-all.js"> </script>
+        <script>
+            Ext.onReady(function() {
+                Ext.create('Ext.form.Panel', {
+                    renderTo: document.body,
+                    bodyPadding: 10,
+                    width: 300,
+                    url: '/',
+                    items: [{
+                        xtype: 'textfield',
+                        name: 'username',
+                        allowBlank: false
+                    }, {
+                        xtype: 'hiddenfield',
+                        name: 'csrfmiddlewaretoken',
+                        value: '{{ csrf_token }}'
+                    }, {
+                        xtype: 'displayfield',
+                        hideLabel: true,
+                        name: 'result',
+                        value: ''
+                    }],
+                    buttons: [{
+                        text: 'Проверить',
+                        formBind: true,
+                        handler: function() {
+                            var form = this.up('form').getForm();
+                            form.submit({
+                                success: function(form, action) {
+                                    if (action.result && action.result.success) {
+                                        form.findField('result').setValue('логин прошел проверку');
+                                    } else {
+                                        form.findField('result').setValue('логин не прошел проверку');
+                                    }
+                                },
+                                failure: function(form, action) {
+                                    form.findField('result').setValue('логин не прошел проверку');
+                                }
+                            });
+                        }
+                    }]
+                });
+            });
+        </script>
+    </body>
+</html>

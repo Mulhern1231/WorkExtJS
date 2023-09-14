@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table</title>
+
+
+    <link rel = "stylesheet" type = "text/css" href = "https://cdnjs.cloudflare.com/ajax/libs/extjs/6.0.0/classic/theme-crisp/resources/theme-crisp-all.css" / >
+    
+</head>
+<body>
+    <script type = "text/javascript" src = "https://cdnjs.cloudflare.com/ajax/libs/extjs/6.0.0/ext-all.js"> </script>
+
+    <script>
+        Ext.onReady(function () {
+            // Определение модели данных
+            Ext.define('DataRow', {
+                extend: 'Ext.data.Model',
+                idProperty: 'id',
+                fields: ['id', 'column1', 'column2', 'column3', 'column4', 'column5']
+            });
+
+            // Определение ExtJS Store
+            var store = Ext.create('Ext.data.Store', {
+                model: 'DataRow',
+                autoLoad: true,
+                autoSync: true,
+                proxy: {
+                    type: 'ajax',
+                    url: '/table/api/rows/',
+                    actionMethods: {
+                        create: 'POST',
+                        read: 'GET',
+                        update: 'PUT',
+                        destroy: 'DELETE'
+                    },
+                    buildUrl: function(request) {
+                        var url = this.getUrl(request);
+                        var records = request.getOperation().getRecords();
+
+                        if (records && records.length > 0) {
+                            var record = records[0];
+                            // Если у записи есть настоящий ID и запись не является "призрачной"
+                            if (!record.phantom && record.getId() && !String(record.getId()).startsWith('DataRow')) {
+                                url = url + record.getId() + '/';
+                            }
+                        }
+                        return url;
+                    },
+                    reader: {
+                        type: 'json',
+                        rootProperty: 'data'
+                    },
+                    writer: {
+                        type: 'json',
+                        writeAllFields: true
+                    }
+                }
+            });
+
+            // Определение ExtJS Grid
+            var grid = Ext.create('Ext.grid.Panel', {
+                renderTo: Ext.getBody(),
+                width: 1000,
+                height: 600,
+                store: store,
+                columns: [
+                    {text: 'ID', dataIndex: 'id', width: 50},
+                    {text: 'Column 1', dataIndex: 'column1', editor: 'textfield'},
+                    {text: 'Column 2', dataIndex: 'column2', editor: 'textfield'},
+                    {text: 'Column 3', dataIndex: 'column3', editor: 'textfield'},
+                    {text: 'Column 4', dataIndex: 'column4', editor: 'textfield'},
+                    {text: 'Column 5', dataIndex: 'column5', editor: 'textfield'}
+                ],
+                selType: 'rowmodel',
+                plugins: [{
+                    ptype: 'rowediting',
+                    clicksToEdit: 2,
+                    saveBtnText: 'Сохранить',
+                    cancelBtnText: 'Отмена',
+                    listeners: {
+                        edit: function(editor, context) {
+                            context.record.commit();
+                            store.sync();
+                        },
+                        canceledit: function(rowEditing, context) {
+                            // Если запись призрачная и редактирование было отменено, удаляем её из хранилища
+                            if (context.record.phantom) {
+                                store.remove(context.record);
+                            }
+                        }
+                    }
+                }],
+                tbar: [{
+                    text: 'Добавить строку',
+                    handler: function() {
+                        var newRow = Ext.create('DataRow', {
+                            column1: '',
+                            column2: '',
+                            column3: '',
+                            column4: '',
+                            column5: ''
+                        });
+
+                        // Вставляем запись в хранилище
+                        grid.getStore().insert(0, newRow);
+
+                        // Начинаем редактирование новой строки
+                        grid.findPlugin('rowediting').startEdit(newRow, 1);
+                    }
+                }, {
+                    text: 'Удалить строку',
+                    handler: function() {
+                        var selection = grid.getView().getSelectionModel().getSelection()[0];
+
+                        if (selection) {
+                            store.remove(selection);
+                            store.sync();
+                        }
+                    }
+                }]
+            });
+        });
+
+
+    </script>
+
+
+</body>
+</html>
